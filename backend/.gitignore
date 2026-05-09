@@ -1,0 +1,26 @@
+# Environment
+.env
+
+# Virtual environment
+finance/
+venv/
+env/
+
+# Trained models — too large for GitHub
+models/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Database
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# VS Code
+.vscode/

@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+sqlalchemy
+python-jose[cryptography]
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-dotenv
+pandas
+numpy
+yfinance
+scikit-learn
+xgboost
+pydantic
+psycopg2-binary
+httpx
+apscheduler
+pytz
