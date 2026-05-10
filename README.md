@@ -26,6 +26,7 @@ Rather than predicting exact prices, which is statistically unreliable and pract
 The platform is built end-to-end — from data pipeline and model training to a deployed web application with authentication, backtesting, and automated weekly retraining.
 
 ---
+## Screenshots
 
 ## Features
 
