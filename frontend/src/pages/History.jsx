@@ -10,10 +10,29 @@ export default function History() {
   const navigate = useNavigate()
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [selectedAsset, setSelectedAsset] = useState('gold')
   const [chartType, setChartType] = useState('line')
   const [news, setNews] = useState([])
   const [filter, setFilter] = useState('all')
+
+  const fetchHistory = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await API.get('/signals/history')
+      setHistory(res.data.history)
+    } catch (err) {
+      console.error(err)
+      if (err.response?.status === 401) {
+        navigate('/login')
+      } else {
+        setError('Failed to load history. Please try again.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (!token) {
@@ -23,18 +42,6 @@ export default function History() {
     fetchHistory()
     API.get('/signals/news').then(r => setNews(r.data.news)).catch(() => {})
   }, [token])
-
-  const fetchHistory = async () => {
-    setLoading(true)
-    try {
-      const res = await API.get('/signals/history')
-      setHistory(res.data.history)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const filtered = history.filter(h => {
     if (filter === 'all') return true
@@ -62,7 +69,7 @@ export default function History() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Navbar prices={{}}/>
+      <Navbar prices={{}} />
 
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
@@ -104,7 +111,7 @@ export default function History() {
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {[
               { id: 'all', label: 'All' },
               { id: 'buy', label: 'BUY Only' },
@@ -116,7 +123,11 @@ export default function History() {
               <button
                 key={f.id}
                 onClick={() => setFilter(f.id)}
-                className={`text-xs px-4 py-2 rounded-lg ${filter === f.id ? 'bg-yellow-500 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                className={`text-xs px-4 py-2 rounded-lg ${
+                  filter === f.id
+                    ? 'bg-yellow-500 text-white'
+                    : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'
+                }`}
               >
                 {f.label}
               </button>
@@ -128,6 +139,16 @@ export default function History() {
             {loading ? (
               <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
                 Loading history...
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center h-40 gap-3">
+                <p className="text-red-500 text-sm">{error}</p>
+                <button
+                  onClick={fetchHistory}
+                  className="text-xs px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
+                >
+                  Retry
+                </button>
               </div>
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-40 gap-2">
@@ -158,7 +179,11 @@ export default function History() {
                         <td className="py-3 text-gray-400">{formatDate(h.created_at)}</td>
                         <td className="py-3 font-medium text-gray-700 uppercase">{h.asset}</td>
                         <td className="py-3">
-                          <span className={`px-2 py-1 rounded text-xs font-semibold ${h.signal === 'BUY' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                            h.signal === 'BUY'
+                              ? 'bg-green-100 text-green-600'
+                              : 'bg-red-100 text-red-600'
+                          }`}>
                             {h.signal}
                           </span>
                         </td>
@@ -178,7 +203,11 @@ export default function History() {
                           {h.ma30?.toFixed(2) ?? '--'}
                         </td>
                         <td className="py-3 text-center">
-                          <span className={`px-2 py-0.5 rounded text-xs ${h.market_open ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
+                          <span className={`px-2 py-0.5 rounded text-xs ${
+                            h.market_open
+                              ? 'bg-green-100 text-green-600'
+                              : 'bg-orange-100 text-orange-600'
+                          }`}>
                             {h.market_open ? 'Open' : 'Closed'}
                           </span>
                         </td>
@@ -189,6 +218,7 @@ export default function History() {
               </div>
             )}
           </div>
+
         </div>
       </div>
     </div>

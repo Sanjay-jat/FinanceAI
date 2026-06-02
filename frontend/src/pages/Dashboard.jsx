@@ -6,6 +6,7 @@ import SignalBanner from '../components/SignalBanner'
 import PriceChart from '../components/PriceChart'
 import MoodGauge from '../components/MoodGauge'
 import API from '../api/axios'
+import { useAuth } from '../context/AuthContext'
 
 // Helper function to process signal and price data
 const processData = (signalRes, priceRes) => {
@@ -19,11 +20,12 @@ const processData = (signalRes, priceRes) => {
 }
 
 export default function Dashboard() {
+  const { token } = useAuth()
   const [selectedAsset, setSelectedAsset] = useState('gold')
   const [chartType, setChartType] = useState('line')
   const [signals, setSignals] = useState({ gold: null, silver: null, nifty: null })
   const [prices, setPrices] = useState({ gold: null, silver: null, nifty: null })
-  const [news, setNews] = useState([])
+  const [news, setNews] = useState(null)
   const [watchlist, setWatchlist] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -31,16 +33,22 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchAllData()
-  }, [])
+  }, [token]) // re-fetch when login state changes
 
   const fetchAllData = async () => {
     try {
       setError(null)
+
+      // ✅ KEY FIX: use private route when logged in (saves to DB → history works)
+      // use public route when not logged in
+      const signalRoute = (asset) =>
+        token ? `/signals/private/${asset}` : `/signals/public/${asset}`
+
       const [goldRes, silverRes, niftyRes, newsRes,
              goldPrice, silverPrice, niftyPrice] = await Promise.allSettled([
-        API.get('/signals/public/gold'),
-        API.get('/signals/public/silver'),
-        API.get('/signals/public/nifty'),
+        API.get(signalRoute('gold')),
+        API.get(signalRoute('silver')),
+        API.get(signalRoute('nifty')),
         API.get('/signals/news'),
         API.get('/signals/price/gold'),
         API.get('/signals/price/silver'),
@@ -107,7 +115,7 @@ export default function Dashboard() {
         />
 
         <div className="flex-1 flex flex-col overflow-auto">
-          
+
           {error && (
             <div className="mx-4 mt-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-md shadow-sm">
               <div className="flex items-center">
@@ -135,7 +143,7 @@ export default function Dashboard() {
             <SignalBanner data={currentSignal} asset={selectedAsset}/>
           </div>
 
-          {/* Chart + Right Panel (Untouched) */}
+          {/* Chart + Right Panel */}
           <div className="flex gap-4 px-4 pb-3 flex-1 min-h-0" style={{ height: '420px' }}>
             <div className="flex-1 flex flex-col min-h-0">
               <PriceChart asset={selectedAsset} chartType={chartType}/>
@@ -163,12 +171,12 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Bottom Section: Grouped into Columns to prevent stretching */}
+          {/* Bottom Section */}
           <div className="flex gap-4 px-4 pb-4 items-start">
-            
+
             {/* LEFT COLUMN: Metrics + About */}
             <div className="flex-1 flex flex-col gap-4">
-              
+
               {/* Model Metrics */}
               <div className="bg-white border border-gray-200 rounded-xl p-4">
                 <div className="flex gap-6">
@@ -243,7 +251,7 @@ export default function Dashboard() {
 
             {/* RIGHT COLUMN: Watchlist + Developer */}
             <div className="w-80 flex flex-col gap-4">
-              
+
               {/* Watchlist */}
               <div className="bg-white border border-gray-200 rounded-xl p-4">
                 <p className="text-xs text-gray-400 uppercase tracking-widest mb-3">Watchlist</p>
