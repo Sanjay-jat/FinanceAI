@@ -1,3 +1,4 @@
+import os
 import pickle
 import numpy as np
 import pandas as pd
@@ -22,9 +23,15 @@ def is_market_open() -> dict:
     }
 
 def load_model(asset: str):
-    with open(f"models/{asset}_xgb.pkl", "rb") as f:
+    xgb_path = f"models/{asset}_xgb.pkl"
+    scaler_path = f"models/{asset}_scaler.pkl"
+
+    if not os.path.exists(xgb_path) or not os.path.exists(scaler_path):
+        raise FileNotFoundError(f"Model files not found for {asset}. Run training first.")
+
+    with open(xgb_path, "rb") as f:
         model = pickle.load(f)
-    with open(f"models/{asset}_scaler.pkl", "rb") as f:
+    with open(scaler_path, "rb") as f:
         scaler = pickle.load(f)
     return model, scaler
 
