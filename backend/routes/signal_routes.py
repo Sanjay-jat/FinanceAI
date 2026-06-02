@@ -78,34 +78,63 @@ def get_private_signal(
 
 import httpx
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 
 @router.get("/news")
 async def get_news():
+
+    if not NEWS_API_KEY:
+        return {
+            "news": [],
+            "error": "NEWS_API_KEY not found"
+        }
+
     url = (
-        f"https://newsapi.org/v2/everything?"
-        f"q=%22gold%22+OR+%22silver%22+OR+%22nifty%2050%22+OR+%22sensex%22+OR+%22commodity%22&"
-        f"language=en&"
-        f"sortBy=publishedAt&"
-        f"pageSize=6&"
-        f"domains=reuters.com,economictimes.indiatimes.com,moneycontrol.com,livemint.com,bloomberg.com&"
+        "https://newsapi.org/v2/everything?"
+        "q=gold OR silver OR nifty OR sensex OR commodity&"
+        "language=en&"
+        "sortBy=publishedAt&"
+        "pageSize=6&"
         f"apiKey={NEWS_API_KEY}"
     )
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url)
+
+        response.raise_for_status()
         data = response.json()
 
-    articles = []
-    for article in data.get("articles", []):
-        articles.append({
-            "title": article["title"],
-            "source": article["source"]["name"],
-            "published_at": article["publishedAt"],
-            "url": article["url"]
-        })
-    return {"news": articles}
+        articles = []
 
+        for article in data.get("articles", []):
+            articles.append({
+                "title": article.get("title"),
+                "source": article.get("source", {}).get("name"),
+                "published_at": article.get("publishedAt"),
+                "url": article.get("url"),
+                "description": article.get("description"),
+                "image": article.get("urlToImage")
+            })
+
+        return {"news": articles}
+
+    except httpx.TimeoutException:
+        return {
+            "news": [],
+            "error": "News API timeout"
+        }
+
+    except Exception as e:
+        return {
+            "news": [],
+            "error": str(e)
+        }
+    
 @router.get("/chart/{asset}")
 def get_chart_data(asset: str, period: str = "3M"):
     import yfinance as yf
@@ -150,7 +179,7 @@ def get_price(asset: str):
     tickers = {"gold": "GC=F", "silver": "SI=F", "nifty": "^NSEI"}
     ticker = tickers.get(asset.lower())
     data = yf.Ticker(ticker)
-    hist = data.history(period="2d")
+    hist = data.history(period="7d")
     
     current = round(float(hist["Close"].iloc[-1]), 2)
     previous = round(float(hist["Close"].iloc[-2]), 2)
