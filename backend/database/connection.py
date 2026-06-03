@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
@@ -9,17 +9,21 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL is not set in .env")
+    raise RuntimeError("DATABASE_URL is not set")
 
-# Railway/Supabase gives postgres:// but SQLAlchemy needs postgresql://
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True,   # auto-reconnect if connection dropped
+    pool_pre_ping=True,
     pool_size=5,
-    max_overflow=10
+    max_overflow=10,
+    connect_args={
+        "sslmode": "require",
+        "connect_timeout": 10,
+        "options": "-c tcp_keepalives_idle=60"
+    }
 )
 
 SessionLocal = sessionmaker(
@@ -31,8 +35,7 @@ SessionLocal = sessionmaker(
 Base = declarative_base()
 
 def init_db():
-    """Create all tables if they don't exist yet."""
-    from database.models import User, SignalHistory  # import here to avoid circular
+    from database.models import User, SignalHistory
     Base.metadata.create_all(bind=engine)
     print("✅ Database tables created / verified")
 
