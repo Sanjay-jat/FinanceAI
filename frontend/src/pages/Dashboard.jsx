@@ -35,7 +35,7 @@ export default function Dashboard() {
     fetchAllData()
   }, [token]) // re-fetch when login state changes
 
-  const fetchAllData = async () => {
+  const fetchAllData = async (retryCount = 0) => {
     try {
       setError(null)
 
@@ -54,6 +54,17 @@ export default function Dashboard() {
         API.get('/signals/price/silver'),
         API.get('/signals/price/nifty'),
       ])
+
+      // Check if all signal calls failed (server still waking up)
+      const allFailed = [goldRes, silverRes, niftyRes].every(
+        r => r.status === 'rejected' || r.value?.data?.error
+      )
+
+      if (allFailed && retryCount < 3) {
+        setError(`Server is waking up... retrying (${retryCount + 1}/3)`)
+        setTimeout(() => fetchAllData(retryCount + 1), 5000)
+        return
+      }
 
       setSignals({
         gold: processData(goldRes, goldPrice),
@@ -117,10 +128,10 @@ export default function Dashboard() {
         <div className="flex-1 flex flex-col overflow-auto">
 
           {error && (
-            <div className="mx-4 mt-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-md shadow-sm">
-              <div className="flex items-center">
-                <span className="text-red-500 mr-3">⚠️</span>
-                <p className="text-sm text-red-700 font-medium">{error}</p>
+            <div className="mx-4 mt-4 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-md shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm text-yellow-700 font-medium">{error}</p>
               </div>
             </div>
           )}
