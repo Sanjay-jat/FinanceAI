@@ -10,26 +10,48 @@ from ml.features import engineer_features
 FEATURES = ["MA7", "MA30", "RSI", "MACD", "MACD_Signal",
             "Volatility", "TrendStrength"]
 
-def is_market_open() -> dict:
+def is_market_open(asset: str) -> dict:
     ist = pytz.timezone('Asia/Kolkata')
     now = datetime.now(ist)
-    day = now.weekday()  # 0=Mon, 6=Sun
-
-    is_weekend = day >= 5
+    day = now.weekday()  # 0=Monday, 6=Sunday
+    is_weekend = day >= 5  # Saturday=5, Sunday=6
     hour = now.hour
     minute = now.minute
     time_val = hour * 100 + minute
 
-    # Indian market hours: 9:15 AM – 3:30 PM IST, weekdays only
-    is_trading_hours = (time_val >= 915) and (time_val <= 1530)
-    is_open = (not is_weekend) and is_trading_hours
+    asset = asset.lower()
 
-    if is_weekend:
-        status = "Market Closed — Weekend"
-    elif not is_trading_hours:
-        status = "Market Closed — Outside Trading Hours (9:15 AM – 3:30 PM IST)"
+    if asset in ["gold", "silver"]:
+        # MCX Gold & Silver: Mon–Fri 9:00 AM – 11:30 PM IST only
+        if is_weekend:
+            is_open = False
+            status = "Market Closed — No trading on weekends"
+        else:
+            is_open = (time_val >= 900) and (time_val <= 2330)
+            if is_open:
+                status = "Market Open"
+            elif time_val < 900:
+                status = "Market Closed — Opens at 9:00 AM IST"
+            else:
+                status = "Market Closed — Closes at 11:30 PM IST"
+
+    elif asset == "nifty":
+        # NSE Nifty 50: Mon–Fri 9:15 AM – 3:30 PM IST only
+        if is_weekend:
+            is_open = False
+            status = "Market Closed — No trading on weekends"
+        else:
+            is_open = (time_val >= 915) and (time_val <= 1530)
+            if is_open:
+                status = "Market Open"
+            elif time_val < 915:
+                status = "Market Closed — Opens at 9:15 AM IST"
+            else:
+                status = "Market Closed — Closes at 3:30 PM IST"
+
     else:
-        status = "Market Open"
+        is_open = False
+        status = "Unknown asset"
 
     return {
         "is_open": is_open,
@@ -56,17 +78,13 @@ def get_signal(asset: str) -> dict:
     try:
         df = engineer_features(asset)
 
-        # --- THE FIX ---
-        # Flatten all feature columns to clean 1D float Series
-        # before building the feature row. This neutralises any
-        # MultiIndex column bleed-through from yfinance for GC=F.
+        # Flatten all feature columns to clean 1D float values
         feature_row = {}
         for feat in FEATURES:
             col = df[feat]
             if isinstance(col, pd.DataFrame):
                 col = col.iloc[:, 0]
             val = col.iloc[-1]
-            # unwrap any remaining array/Series wrapper
             if hasattr(val, '__iter__'):
                 val = float(list(val)[0])
             else:
@@ -75,7 +93,6 @@ def get_signal(asset: str) -> dict:
 
         latest = pd.DataFrame([feature_row], columns=FEATURES)
 
-        # Validate — no NaN allowed going into scaler
         if latest.isnull().values.any():
             bad = [f for f in FEATURES if pd.isna(feature_row[f])]
             raise ValueError(f"NaN in features after extraction: {bad}")
@@ -88,7 +105,7 @@ def get_signal(asset: str) -> dict:
         confidence = round(float(max(probability)), 2)
         signal = "BUY" if prediction == 1 else "SELL"
 
-        market = is_market_open()
+        market = is_market_open(asset)
 
         return {
             "asset": asset.upper(),
@@ -98,17 +115,15 @@ def get_signal(asset: str) -> dict:
             "market_status": market["status"],
             "day": market["day"],
             "features": {
-                "MA7":          round(feature_row["MA7"], 4),
-                "MA30":         round(feature_row["MA30"], 4),
-                "RSI":          round(feature_row["RSI"], 2),
-                "MACD":         round(feature_row["MACD"], 4),
-                "Volatility":   round(feature_row["Volatility"], 4),
-                "TrendStrength":round(feature_row["TrendStrength"], 4),
+                "MA7":           round(feature_row["MA7"], 4),
+                "MA30":          round(feature_row["MA30"], 4),
+                "RSI":           round(feature_row["RSI"], 2),
+                "MACD":          round(feature_row["MACD"], 4),
+                "Volatility":    round(feature_row["Volatility"], 4),
+                "TrendStrength": round(feature_row["TrendStrength"], 4),
             }
         }
 
     except Exception as e:
-        # Print full traceback to Render logs so you can see exactly
-        # what line fails for each asset
         traceback.print_exc()
         return {"error": str(e)}
