@@ -21,7 +21,7 @@ export default function PriceChart({ asset, chartType }) {
     setLoading(true)
     try {
       const res = await API.get(`/signals/chart/${asset}?period=${period}`)
-      setData(res.data.data)
+      setData(res.data.data || [])
     } catch (err) {
       console.error(err)
     } finally {
@@ -54,71 +54,6 @@ export default function PriceChart({ asset, chartType }) {
     }
     return null
   }
-
-  // Candlestick renderer
-  const CandlestickChart = ({ data }) => {
-    if (!data.length) return null
-    const prices = data.map(d => d.close)
-    const minP = Math.min(...prices)
-    const maxP = Math.max(...prices)
-    const range = maxP - minP
-    const W = 800
-    const H = 280
-    const PAD = 40
-    const candleW = Math.max(3, (W - PAD) / data.length - 2)
-
-    const toY = (price) => H - ((price - minP) / range) * (H - PAD) - 10
-
-    const sliced = data.slice(-60)
-
-    return (
-      <svg width="100%" viewBox={`0 0 ${W} ${H + 20}`} className="overflow-visible">
-        {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
-          const price = minP + t * range
-          const y = toY(price)
-          return (
-            <g key={i}>
-              <line x1={PAD} y1={y} x2={W} y2={y} stroke="#f0f0f0" strokeWidth="0.5"/>
-              <text x={2} y={y + 4} fill="#ccc" fontSize="9">
-                {asset === 'nifty' ? Math.round(price).toLocaleString() : `$${Math.round(price)}`}
-              </text>
-            </g>
-          )
-        })}
-
-        {sliced.map((d, i) => {
-          const x = PAD + (i / sliced.length) * (W - PAD)
-          const isUp = d.close >= d.open
-          const color = isUp ? '#22c55e' : '#ef4444'
-          const openY = toY(d.open)
-          const closeY = toY(d.close)
-          const highY = toY(d.high)
-          const lowY = toY(d.low)
-          const bodyTop = Math.min(openY, closeY)
-          const bodyH = Math.max(2, Math.abs(openY - closeY))
-
-          return (
-            <g key={i}>
-              <line x1={x + candleW / 2} y1={highY} x2={x + candleW / 2} y2={lowY} stroke={color} strokeWidth="1"/>
-              <rect x={x} y={bodyTop} width={candleW} height={bodyH} fill={color}/>
-            </g>
-          )
-        })}
-
-        {/* Date labels */}
-        {sliced.filter((_, i) => i % 10 === 0).map((d, i, arr) => {
-          const origI = sliced.indexOf(d)
-          const x = PAD + (origI / sliced.length) * (W - PAD)
-          return (
-            <text key={i} x={x} y={H + 15} fill="#ccc" fontSize="9" textAnchor="middle">
-              {formatDate(d.date)}
-            </text>
-          )
-        })}
-      </svg>
-    )
-  }
-
   return (
     <div className="bg-white border border-gray-200 rounded-xl flex flex-col flex-1 overflow-hidden">
 
@@ -192,3 +127,65 @@ export default function PriceChart({ asset, chartType }) {
     </div>
   )
 }
+function CandlestickChart({ data, asset, formatDate, formatPrice }) {
+    if (!data.length) return null
+    const prices = data.map(d => d.close)
+    const minP = Math.min(...prices)
+    const maxP = Math.max(...prices)
+    const range = maxP - minP
+    const W = 800
+    const H = 280
+    const PAD = 40
+    const candleW = Math.max(3, (W - PAD) / data.length - 2)
+
+    const toY = (price) => H - ((price - minP) / range) * (H - PAD) - 10
+
+    const sliced = data.slice(-60)
+
+    return (
+      <svg width="100%" viewBox={`0 0 ${W} ${H + 20}`} className="overflow-visible">
+        {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
+          const price = minP + t * range
+          const y = toY(price)
+          return (
+            <g key={i}>
+              <line x1={PAD} y1={y} x2={W} y2={y} stroke="#f0f0f0" strokeWidth="0.5"/>
+              <text x={2} y={y + 4} fill="#ccc" fontSize="9">
+                {asset === 'nifty' ? Math.round(price).toLocaleString() : `$${Math.round(price)}`}
+              </text>
+            </g>
+          )
+        })}
+
+        {sliced.map((d, i) => {
+          const x = PAD + (i / sliced.length) * (W - PAD)
+          const isUp = d.close >= d.open
+          const color = isUp ? '#22c55e' : '#ef4444'
+          const openY = toY(d.open)
+          const closeY = toY(d.close)
+          const highY = toY(d.high)
+          const lowY = toY(d.low)
+          const bodyTop = Math.min(openY, closeY)
+          const bodyH = Math.max(2, Math.abs(openY - closeY))
+
+          return (
+            <g key={i}>
+              <line x1={x + candleW / 2} y1={highY} x2={x + candleW / 2} y2={lowY} stroke={color} strokeWidth="1"/>
+              <rect x={x} y={bodyTop} width={candleW} height={bodyH} fill={color}/>
+            </g>
+          )
+        })}
+
+        {/* Date labels */}
+        {sliced.filter((_, i) => i % 10 === 0).map((d, i, arr) => {
+          const origI = sliced.indexOf(d)
+          const x = PAD + (origI / sliced.length) * (W - PAD)
+          return (
+            <text key={i} x={x} y={H + 15} fill="#ccc" fontSize="9" textAnchor="middle">
+              {formatDate(d.date)}
+            </text>
+          )
+        })}
+      </svg>
+    )
+  }
