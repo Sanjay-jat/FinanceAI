@@ -9,24 +9,46 @@
 [![XGBoost](https://img.shields.io/badge/XGBoost-FF6600?style=for-the-badge&logo=python&logoColor=white)](https://xgboost.readthedocs.io)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgresql.org)
 [![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 [![Tailwind](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
 
-**[Live Demo](#)**
+### **[🚀 Live Demo → finance-ai-eight-vert.vercel.app](https://finance-ai-eight-vert.vercel.app)**
+
+*Deployed on Vercel (frontend) · Render (backend) · Supabase PostgreSQL (database)*
 
 </div>
 
 ---
 
-## Overview
+## Screenshots
 
-FinanceAI is a full-stack machine learning platform that classifies next-day market direction — **BUY or SELL** — for Gold, Silver, and Nifty 50.
+### Dashboard — Live Signals & Price Charts
+![Dashboard](screenshots/dashboard.png)
 
-Rather than predicting exact prices, which is statistically unreliable and practically misleading, FinanceAI frames the problem as binary classification: will this asset close higher or lower tomorrow? This approach is more honest, measurable, and actionable for real trading decisions.
-
-The platform is built end-to-end — from data pipeline and model training to a deployed web application with authentication, backtesting, and automated weekly retraining.
+### Backtesting — Historical Signal Performance
+![Backtesting](screenshots/backtesting.png)
 
 ---
-## Screenshots
+
+## What This Project Does
+
+FinanceAI is a production-deployed, full-stack machine learning platform that generates next-day **BUY / SELL signals** for Gold, Silver, and Nifty 50 using XGBoost trained on 10 years of market data.
+
+Rather than predicting exact prices — which is statistically unreliable — FinanceAI frames the problem as **binary classification**: will this asset close higher or lower tomorrow? This is more honest, measurable, and actionable.
+
+The platform is built end-to-end: data pipeline → feature engineering → model training → REST API → React frontend → cloud deployment — with JWT authentication, a backtesting engine, signal history per user, live financial news, and automated weekly model retraining.
+
+---
+
+## Why This Project Stands Out
+
+- **Not a tutorial clone.** Every component — ML pipeline, auth system, backtesting engine, frontend — was designed and built from scratch.
+- **Production deployed.** Live on the internet with a real database, not just running on localhost.
+- **Freemium access model.** Public dashboard for all users, protected routes (Backtesting, History) for authenticated users — mirrors real SaaS product design.
+- **Automated MLOps.** Models retrain every Sunday midnight via APScheduler without any manual intervention.
+- **Honest ML.** Model accuracy and metrics are shown transparently on the dashboard — no inflated numbers.
+
+---
 
 ## Features
 
@@ -44,6 +66,7 @@ The platform is built end-to-end — from data pipeline and model training to a 
 | Freemium Access Model | Public dashboard — Backtesting and History require login |
 | Weekly Auto-Retraining | Model retrains every Sunday at midnight via APScheduler |
 | Weekend Detection | Displays market closed status and Monday prediction |
+| Response Caching | 5-minute in-memory cache on yfinance calls for faster loads |
 
 ---
 
@@ -51,15 +74,16 @@ The platform is built end-to-end — from data pipeline and model training to a 
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                        FRONTEND                         │
-│              React + Vite + Tailwind CSS                │
-│     Dashboard · Backtesting · History · Auth Pages      │
+│                     FRONTEND                            │
+│           React + Vite + Tailwind CSS                   │
+│   Dashboard · Backtesting · History · Auth Pages        │
+│              Deployed on Vercel                         │
 └──────────────────────┬──────────────────────────────────┘
-                       │  HTTP / REST API
+                       │  HTTP / REST API (Axios + JWT)
                        ▼
 ┌─────────────────────────────────────────────────────────┐
-│                        BACKEND                          │
-│                    FastAPI + Python                     │
+│                     BACKEND                             │
+│                 FastAPI + Python                        │
 │                                                         │
 │  ┌─────────────┐  ┌─────────────┐  ┌───────────────┐   │
 │  │  Auth Layer │  │  ML Engine  │  │  Data Layer   │   │
@@ -69,14 +93,15 @@ The platform is built end-to-end — from data pipeline and model training to a 
 │  │  Login      │  │  Backtest   │  │  SQLAlchemy   │   │
 │  └─────────────┘  └─────────────┘  └───────────────┘   │
 │                                                         │
-│              APScheduler → Weekly Retrain               │
+│           APScheduler → Weekly Retrain                  │
+│              Deployed on Render                         │
 └─────────────────────────────────────────────────────────┘
                        │
                        ▼
 ┌─────────────────────────────────────────────────────────┐
-│                      DATABASE                           │
-│                     PostgreSQL                          │
-│           Users Table · Signal History Table            │
+│                    DATABASE                             │
+│              PostgreSQL on Supabase                     │
+│        Users Table · Signal History Table               │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -116,24 +141,22 @@ df["Target"] = df["Return"].apply(
 
 Trained on 10 years of daily OHLCV data (~2500 rows per asset). Logistic Regression used as baseline for comparison. Models retrain automatically every Sunday.
 
-### Why XGBoost
+### Why XGBoost over LSTM
 
-XGBoost was selected over LSTM for the following reasons:
-
-- The input is engineered tabular features, not raw sequences. Tree-based models consistently outperform LSTMs on tabular data.
+- Input is engineered tabular features, not raw sequences. Tree-based models consistently outperform LSTMs on tabular data.
 - XGBoost provides feature importance scores, making predictions interpretable and explainable.
-- Training time is significantly lower, which matters for weekly automated retraining.
-- LSTM requires substantially larger datasets to generalize well. 2500 rows is insufficient.
+- Training time is significantly lower — important for weekly automated retraining on a free server.
+- LSTM requires substantially larger datasets to generalize well. ~2500 rows is insufficient for reliable sequence learning.
 
 ---
 
 ## Tech Stack
 
 ### Backend
-
 | Technology | Purpose |
 |---|---|
 | FastAPI | REST API framework |
+| Python | Core backend language |
 | SQLAlchemy | ORM and database abstraction |
 | PostgreSQL | Production relational database |
 | python-jose | JWT token creation and verification |
@@ -142,7 +165,6 @@ XGBoost was selected over LSTM for the following reasons:
 | httpx | Async HTTP client for news API |
 
 ### Machine Learning
-
 | Technology | Purpose |
 |---|---|
 | XGBoost | Primary classification model |
@@ -152,14 +174,21 @@ XGBoost was selected over LSTM for the following reasons:
 | pandas + numpy | Data processing and transformation |
 
 ### Frontend
-
 | Technology | Purpose |
 |---|---|
 | React + Vite | Component-based UI framework |
+| JavaScript (ES6+) | Core frontend language |
 | Tailwind CSS | Utility-first styling |
 | Recharts | Price and backtesting charts |
 | React Router | Client-side page routing |
-| Axios | API communication with interceptors |
+| Axios | API communication with JWT interceptors |
+
+### Deployment
+| Service | Purpose |
+|---|---|
+| Vercel | Frontend hosting (automatic deploys from GitHub) |
+| Render | Backend hosting (free tier, Python 3) |
+| Supabase | Managed PostgreSQL database |
 
 ---
 
@@ -187,6 +216,7 @@ financeAi/
 │   │   ├── auth_routes.py          # Register and login endpoints
 │   │   └── signal_routes.py        # Signal, backtest, news, history
 │   │
+│   ├── models/                     # Trained .pkl files (XGBoost + scalers)
 │   ├── main.py                     # FastAPI app entry point
 │   └── requirements.txt
 │
@@ -208,8 +238,7 @@ financeAi/
         │   └── SignalBanner.jsx     # Today's signal with confidence
         │
         ├── context/
-        │   ├── AuthContext.jsx      # JWT token global state
-        │   └── ThemeContext.jsx     # Theme state
+        │   └── AuthContext.jsx      # JWT token global state
         │
         └── api/
             └── axios.js             # Axios instance with interceptors
@@ -235,6 +264,8 @@ GET    /signals/private/{asset}       Signal saved to user history
 GET    /signals/backtest/{asset}      Backtesting results
 GET    /signals/history               Personal signal history
 ```
+
+Swagger UI: https://financeai-backend-0iqu.onrender.com/docs
 
 ---
 
@@ -267,8 +298,7 @@ python -m ml.train
 uvicorn main:app --reload
 ```
 
-API available at `http://127.0.0.1:8000`
-Swagger docs at `http://127.0.0.1:8000/docs`
+API at `http://127.0.0.1:8000` · Swagger at `http://127.0.0.1:8000/docs`
 
 ### Frontend
 
@@ -278,7 +308,7 @@ npm install
 npm run dev
 ```
 
-App available at `http://localhost:5173`
+App at `http://localhost:5173`
 
 ---
 
@@ -307,6 +337,8 @@ Financial News Feed
 - [x] Automated weekly model retraining
 - [x] Live financial news feed
 - [x] Weekend market detection
+- [x] Response caching for faster loads
+- [x] Production deployment (Vercel + Render + Supabase)
 - [ ] Macro features — DXY, VIX, Crude Oil, INR/USD
 - [ ] AI Agent using LangGraph for signal explanation
 - [ ] Email alerts on signal change
@@ -329,6 +361,6 @@ B.Tech Computer Science · 3rd Year · Rajasthan, India
 
 <div align="center">
 
-This project is built for educational and portfolio purposes only and does not constitute financial advice.
+*This project is built for educational and portfolio purposes only and does not constitute financial advice.*
 
 </div>
