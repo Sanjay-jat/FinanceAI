@@ -1,22 +1,19 @@
-<div align="center">
+# FinanceAI — Financial Signal Classification System
 
-# FinanceAI
+> Generates next-day **BUY/SELL signals** for Gold, Silver & Nifty 50 using XGBoost trained on 10 years of market data. Production-deployed with JWT auth, backtesting engine, and automated weekly retraining.
 
-**Financial Signal Classification System**
+![Gold](https://img.shields.io/badge/Gold%20Accuracy-59%25-yellow)
+![Silver](https://img.shields.io/badge/Silver%20Accuracy-51%25-blue)
+![Nifty50](https://img.shields.io/badge/Nifty%2050%20Accuracy-52%25-orange)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
+![XGBoost](https://img.shields.io/badge/XGBoost-FF6600?style=flat)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat&logo=postgresql&logoColor=white)
+![Deploy](https://img.shields.io/badge/deployed-live-brightgreen)
 
-[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org)
-[![XGBoost](https://img.shields.io/badge/XGBoost-FF6600?style=for-the-badge&logo=python&logoColor=white)](https://xgboost.readthedocs.io)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgresql.org)
-[![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![Tailwind](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
+🚀 **Live Demo →** [finance-ai-eight-vert.vercel.app](https://finance-ai-eight-vert.vercel.app)
 
-### **[🚀 Live Demo → finance-ai-eight-vert.vercel.app](https://finance-ai-eight-vert.vercel.app)**
-
-*Deployed on Vercel (frontend) · Render (backend) · Supabase PostgreSQL (database)*
-
-</div>
+Deployed on **Vercel** (frontend) · **Render** (backend) · **Supabase PostgreSQL** (database)
 
 ---
 
@@ -30,21 +27,21 @@
 
 ---
 
-## What This Project Does
+## What this project does
 
-FinanceAI is a production-deployed, full-stack machine learning platform that generates next-day **BUY / SELL signals** for Gold, Silver, and Nifty 50 using XGBoost trained on 10 years of market data.
+FinanceAI is a production-deployed, full-stack machine learning platform that generates next-day BUY/SELL signals for Gold, Silver, and Nifty 50.
 
 Rather than predicting exact prices — which is statistically unreliable — FinanceAI frames the problem as **binary classification**: will this asset close higher or lower tomorrow? This is more honest, measurable, and actionable.
 
-The platform is built end-to-end: data pipeline → feature engineering → model training → REST API → React frontend → cloud deployment — with JWT authentication, a backtesting engine, signal history per user, live financial news, and automated weekly model retraining.
+Built end-to-end: data pipeline → feature engineering → model training → REST API → React frontend → cloud deployment — with JWT authentication, a backtesting engine, signal history per user, live financial news, and automated weekly model retraining.
 
 ---
 
-## Why This Project Stands Out
+## Why this project stands out
 
 - **Not a tutorial clone.** Every component — ML pipeline, auth system, backtesting engine, frontend — was designed and built from scratch.
 - **Production deployed.** Live on the internet with a real database, not just running on localhost.
-- **Freemium access model.** Public dashboard for all users, protected routes (Backtesting, History) for authenticated users — mirrors real SaaS product design.
+- **Freemium access model.** Public dashboard for all users, protected routes for authenticated users — mirrors real SaaS product design.
 - **Automated MLOps.** Models retrain every Sunday midnight via APScheduler without any manual intervention.
 - **Honest ML.** Model accuracy and metrics are shown transparently on the dashboard — no inflated numbers.
 
@@ -72,66 +69,43 @@ The platform is built end-to-end: data pipeline → feature engineering → mode
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                     FRONTEND                            │
-│           React + Vite + Tailwind CSS                   │
-│   Dashboard · Backtesting · History · Auth Pages        │
-│              Deployed on Vercel                         │
-└──────────────────────┬──────────────────────────────────┘
-                       │  HTTP / REST API (Axios + JWT)
-                       ▼
-┌─────────────────────────────────────────────────────────┐
-│                     BACKEND                             │
-│                 FastAPI + Python                        │
-│                                                         │
-│  ┌─────────────┐  ┌─────────────┐  ┌───────────────┐   │
-│  │  Auth Layer │  │  ML Engine  │  │  Data Layer   │   │
-│  │  JWT Tokens │  │  XGBoost    │  │  yfinance     │   │
-│  │  Bcrypt     │  │  Features   │  │  NewsAPI      │   │
-│  │  Register   │  │  Predict    │  │  PostgreSQL   │   │
-│  │  Login      │  │  Backtest   │  │  SQLAlchemy   │   │
-│  └─────────────┘  └─────────────┘  └───────────────┘   │
-│                                                         │
-│           APScheduler → Weekly Retrain                  │
-│              Deployed on Render                         │
-└─────────────────────────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────┐
-│                    DATABASE                             │
-│              PostgreSQL on Supabase                     │
-│        Users Table · Signal History Table               │
-└─────────────────────────────────────────────────────────┘
-```
+| Layer | Technology | Hosting |
+|---|---|---|
+| Frontend | React + Vite + Tailwind CSS | Vercel |
+| Backend | FastAPI + Python | Render |
+| ML Engine | XGBoost + scikit-learn | Render |
+| Database | PostgreSQL + SQLAlchemy | Supabase |
+| Auth | JWT + Bcrypt | — |
+| Scheduler | APScheduler (weekly retrain) | — |
+| Data | yfinance + NewsAPI | — |
 
 ---
 
-## Machine Learning
+## Machine learning
 
-### Feature Engineering
+### Feature engineering
 
 ```python
 FEATURES = [
-    "RSI",            # Relative Strength Index
-    "MACD",           # Moving Average Convergence Divergence
-    "MACD_Signal",    # MACD signal line
-    "MA7",            # 7-day Moving Average
-    "MA30",           # 30-day Moving Average
-    "Volatility",     # 7-day rolling standard deviation
-    "TrendStrength",  # Distance from 30-day mean
+    "RSI",           # Relative Strength Index
+    "MACD",          # Moving Average Convergence Divergence
+    "MACD_Signal",   # MACD signal line
+    "MA7",           # 7-day Moving Average
+    "MA30",          # 30-day Moving Average
+    "Volatility",    # 7-day rolling standard deviation
+    "TrendStrength", # Distance from 30-day mean
 ]
 ```
 
-### Target Variable
+### Target variable
 
 ```python
 df["Target"] = df["Return"].apply(
-    lambda x: 1 if x > 0 else 0   # 1 = BUY, 0 = SELL
+    lambda x: 1 if x > 0 else 0  # 1 = BUY, 0 = SELL
 )
 ```
 
-### Model Performance
+### Model performance
 
 | Asset | Model | Accuracy | Precision | Recall | F1 Score |
 |---|---|---|---|---|---|
@@ -139,18 +113,18 @@ df["Target"] = df["Return"].apply(
 | Silver | XGBoost | 51% | 0.55 | 0.51 | 0.49 |
 | Nifty 50 | XGBoost | 52% | 0.51 | 0.52 | 0.48 |
 
-Trained on 10 years of daily OHLCV data (~2500 rows per asset). Logistic Regression used as baseline for comparison. Models retrain automatically every Sunday.
+Trained on 10 years of daily OHLCV data (~2500 rows per asset). Logistic Regression used as baseline for comparison.
 
 ### Why XGBoost over LSTM
 
-- Input is engineered tabular features, not raw sequences. Tree-based models consistently outperform LSTMs on tabular data.
-- XGBoost provides feature importance scores, making predictions interpretable and explainable.
-- Training time is significantly lower — important for weekly automated retraining on a free server.
-- LSTM requires substantially larger datasets to generalize well. ~2500 rows is insufficient for reliable sequence learning.
+- Input is engineered tabular features, not raw sequences — tree-based models consistently outperform LSTMs on tabular data
+- XGBoost provides feature importance scores, making predictions interpretable
+- Training time is significantly lower — important for weekly automated retraining on a free server
+- LSTM requires substantially larger datasets; ~2500 rows is insufficient for reliable sequence learning
 
 ---
 
-## Tech Stack
+## Tech stack
 
 ### Backend
 | Technology | Purpose |
@@ -164,7 +138,7 @@ Trained on 10 years of daily OHLCV data (~2500 rows per asset). Logistic Regress
 | APScheduler | Background job scheduling |
 | httpx | Async HTTP client for news API |
 
-### Machine Learning
+### Machine learning
 | Technology | Purpose |
 |---|---|
 | XGBoost | Primary classification model |
@@ -183,102 +157,109 @@ Trained on 10 years of daily OHLCV data (~2500 rows per asset). Logistic Regress
 | React Router | Client-side page routing |
 | Axios | API communication with JWT interceptors |
 
-### Deployment
-| Service | Purpose |
-|---|---|
-| Vercel | Frontend hosting (automatic deploys from GitHub) |
-| Render | Backend hosting (free tier, Python 3) |
-| Supabase | Managed PostgreSQL database |
-
 ---
 
-## Project Structure
+## Project structure
 
 ```
-financeAi/
+financeAI/
 │
 ├── backend/
 │   ├── auth/
-│   │   ├── hashing.py              # Password hashing with bcrypt
-│   │   └── jwt_handler.py          # JWT token creation and verification
+│   │   ├── hashing.py          # Password hashing with bcrypt
+│   │   └── jwt_handler.py      # JWT token creation and verification
 │   │
 │   ├── database/
-│   │   ├── connection.py           # PostgreSQL engine and session
-│   │   └── models.py               # User and SignalHistory tables
+│   │   ├── connection.py       # PostgreSQL engine and session
+│   │   └── models.py           # User and SignalHistory tables
 │   │
 │   ├── ml/
-│   │   ├── features.py             # Data fetching and feature engineering
-│   │   ├── train.py                # Model training pipeline
-│   │   ├── predict.py              # Live signal generation
-│   │   └── scheduler.py            # Weekly retraining scheduler
+│   │   ├── features.py         # Data fetching and feature engineering
+│   │   ├── train.py            # Model training pipeline
+│   │   ├── predict.py          # Live signal generation
+│   │   └── scheduler.py        # Weekly retraining scheduler
 │   │
 │   ├── routes/
-│   │   ├── auth_routes.py          # Register and login endpoints
-│   │   └── signal_routes.py        # Signal, backtest, news, history
+│   │   ├── auth_routes.py      # Register and login endpoints
+│   │   └── signal_routes.py    # Signal, backtest, news, history
 │   │
-│   ├── models/                     # Trained .pkl files (XGBoost + scalers)
-│   ├── main.py                     # FastAPI app entry point
+│   ├── models/                 # Trained .pkl files (XGBoost + scalers)
+│   ├── main.py                 # FastAPI app entry point
 │   └── requirements.txt
 │
 └── frontend/
     └── src/
         ├── pages/
-        │   ├── Dashboard.jsx        # Public main page
-        │   ├── Backtesting.jsx      # Protected signal performance
-        │   ├── History.jsx          # Protected personal signal log
+        │   ├── Dashboard.jsx       # Public main page
+        │   ├── Backtesting.jsx     # Protected signal performance
+        │   ├── History.jsx         # Protected personal signal log
         │   ├── Login.jsx
         │   └── Register.jsx
         │
         ├── components/
-        │   ├── Navbar.jsx           # Top bar with live price ticker
-        │   ├── Sidebar.jsx          # Navigation, asset selector, news
-        │   ├── AssetCard.jsx        # Price, signal, confidence display
-        │   ├── PriceChart.jsx       # Line, Candlestick, MA chart
-        │   ├── MoodGauge.jsx        # Market mood semicircle gauge
-        │   └── SignalBanner.jsx     # Today's signal with confidence
+        │   ├── Navbar.jsx          # Top bar with live price ticker
+        │   ├── Sidebar.jsx         # Navigation, asset selector, news
+        │   ├── AssetCard.jsx       # Price, signal, confidence display
+        │   ├── PriceChart.jsx      # Line, Candlestick, MA chart
+        │   ├── MoodGauge.jsx       # Market mood semicircle gauge
+        │   └── SignalBanner.jsx    # Today's signal with confidence
         │
         ├── context/
-        │   └── AuthContext.jsx      # JWT token global state
+        │   └── AuthContext.jsx     # JWT token global state
         │
         └── api/
-            └── axios.js             # Axios instance with interceptors
+            └── axios.js            # Axios instance with interceptors
 ```
 
 ---
 
-## API Reference
+## API reference
 
 ```
 PUBLIC
-GET    /signals/public/{asset}        Signal, confidence, features
-GET    /signals/price/{asset}         Live price and daily change
-GET    /signals/chart/{asset}         OHLCV data for charts
-GET    /signals/news                  Live financial news
+GET    /signals/public/{asset}     Signal, confidence, features
+GET    /signals/price/{asset}      Live price and daily change
+GET    /signals/chart/{asset}      OHLCV data for charts
+GET    /signals/news               Live financial news
 
 AUTHENTICATION
-POST   /auth/register                 Create a new account
-POST   /auth/login                    Authenticate and receive JWT token
+POST   /auth/register              Create a new account
+POST   /auth/login                 Authenticate and receive JWT token
 
 PROTECTED  (Authorization: Bearer <token>)
-GET    /signals/private/{asset}       Signal saved to user history
-GET    /signals/backtest/{asset}      Backtesting results
-GET    /signals/history               Personal signal history
+GET    /signals/private/{asset}    Signal saved to user history
+GET    /signals/backtest/{asset}   Backtesting results
+GET    /signals/history            Personal signal history
 ```
 
-Swagger UI: https://financeai-backend-0iqu.onrender.com/docs
+Swagger UI: [financeai-backend-0iqu.onrender.com/docs](https://financeai-backend-0iqu.onrender.com/docs)
 
 ---
 
-## Running Locally
+## Access model
+
+| Public (no login) | Login required |
+|---|---|
+| Dashboard | Backtesting page |
+| Live signals | Signal history |
+| Price charts | Personal signal log |
+| Market mood gauge | — |
+| Live features panel | — |
+| Financial news feed | — |
+
+---
+
+## Running locally
 
 ### Backend
 
 ```bash
-git clone https://github.com/sanjayjat354339-cell/FinanceAI.git
+git clone https://github.com/Sanjay-jat/FinanceAI.git
 cd FinanceAI/backend
 
 python -m venv finance
-finance\Scripts\activate
+finance\Scripts\activate        # Windows
+# source finance/bin/activate   # Mac/Linux
 
 pip install -r requirements.txt
 ```
@@ -312,18 +293,13 @@ App at `http://localhost:5173`
 
 ---
 
-## Access Model
+## Known limitations
 
-```
-Public Access                     Login Required
-─────────────────────             ──────────────────────
-Dashboard                         Backtesting Page
-Live Signals                      Signal History
-Price Charts                      Personal Signal Log
-Market Mood Gauge
-Live Features Panel
-Financial News Feed
-```
+- Models are trained on daily OHLCV data only — intraday volatility is not captured
+- Predictions may lag during sudden macro events (rate decisions, geopolitical shocks)
+- ~2500 rows per asset is sufficient for XGBoost but insufficient for sequence models like LSTM
+- Free-tier backend on Render has cold-start delays (~30 seconds on first load)
+- Silver and Nifty 50 accuracy is near-baseline — macro features (VIX, DXY) planned to improve this
 
 ---
 
@@ -345,22 +321,12 @@ Financial News Feed
 
 ---
 
-## Developer
+## Author
 
-<div align="center">
-
-**Sanjay Jat**
-B.Tech Computer Science · 3rd Year · Rajasthan, India
-
-[![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sanjayjat354339-cell)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/sanjay-jat-250767346)
-
-</div>
+**Sanjay Jat** — [GitHub](https://github.com/Sanjay-jat) · [LinkedIn](https://www.linkedin.com/in/sanjay-jat-250767346) · sanjayjat354339@gmail.com
 
 ---
 
-<div align="center">
+## License
 
-*This project is built for educational and portfolio purposes only and does not constitute financial advice.*
-
-</div>
+[MIT](LICENSE) © 2025 Sanjay Jat
