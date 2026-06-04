@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Navbar from '../components/Navbar'
 import Sidebar from '../components/Sidebar'
 import AssetCard from '../components/AssetCard'
@@ -8,7 +8,6 @@ import MoodGauge from '../components/MoodGauge'
 import API from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 
-// Helper function to process signal and price data
 const processData = (signalRes, priceRes) => {
   if (signalRes.status !== 'fulfilled') return null
   return {
@@ -28,19 +27,33 @@ export default function Dashboard() {
   const [news, setNews] = useState(null)
   const [watchlist, setWatchlist] = useState([])
   const [loading, setLoading] = useState(true)
+  const [warmingUp, setWarmingUp] = useState(false)
   const [error, setError] = useState(null)
   const [showAbout, setShowAbout] = useState(false)
+  const retryTimer = useRef(null)
 
   useEffect(() => {
-    fetchAllData()
-  }, [token]) // re-fetch when login state changes
+    // Wake up Render backend first, then fetch data
+    wakeAndFetch()
+    return () => {
+      if (retryTimer.current) clearTimeout(retryTimer.current)
+    }
+  }, [token])
 
-  const fetchAllData = async (retryCount = 0) => {
+  const wakeAndFetch = async () => {
+    try {
+      // Ping the root endpoint — lightweight, just to wake Render up
+      await API.get('/ping')
+    } catch (_) {
+      // Ignore — even if ping fails, proceed to fetch
+    }
+    fetchAllData(0)
+  }
+
+  const fetchAllData = async (retryCount) => {
     try {
       setError(null)
 
-      // ✅ KEY FIX: use private route when logged in (saves to DB → history works)
-      // use public route when not logged in
       const signalRoute = (asset) =>
         token ? `/signals/private/${asset}` : `/signals/public/${asset}`
 
@@ -55,17 +68,36 @@ export default function Dashboard() {
         API.get('/signals/price/nifty'),
       ])
 
-      // Check if all signal calls failed (server still waking up)
-      const allFailed = [goldRes, silverRes, niftyRes].every(
+      // Check if signals specifically failed (not prices — prices are separate)
+      const signalsFailed = [goldRes, silverRes, niftyRes].every(
         r => r.status === 'rejected' || r.value?.data?.error
       )
 
-      if (allFailed && retryCount < 3) {
-        setError(`Server is waking up... retrying (${retryCount + 1}/3)`)
-        setTimeout(() => fetchAllData(retryCount + 1), 5000)
+      if (signalsFailed && retryCount < 4) {
+        // Show warming up state and retry automatically
+        setWarmingUp(true)
+        setLoading(false)
+
+        // Still set prices so watchlist and navbar work while warming up
+        setPrices({
+          gold: goldPrice.status === 'fulfilled' ? goldPrice.value.data : null,
+          silver: silverPrice.status === 'fulfilled' ? silverPrice.value.data : null,
+          nifty: niftyPrice.status === 'fulfilled' ? niftyPrice.value.data : null,
+        })
+        setWatchlist([
+          { symbol: 'GOLDUSD', price: `$${goldPrice.value?.data?.price ?? '--'}`, change: `${goldPrice.value?.data?.changePercent ?? '--'}%`, up: goldPrice.value?.data?.change >= 0 },
+          { symbol: 'SILVERUSD', price: `$${silverPrice.value?.data?.price ?? '--'}`, change: `${silverPrice.value?.data?.changePercent ?? '--'}%`, up: silverPrice.value?.data?.change >= 0 },
+          { symbol: 'NIFTY50', price: niftyPrice.value?.data?.price ?? '--', change: `${niftyPrice.value?.data?.changePercent ?? '--'}%`, up: niftyPrice.value?.data?.change >= 0 },
+          { symbol: 'CRUDEOIL', price: '$78.14', change: '+1.45%', up: true },
+          { symbol: 'US10Y', price: '4.21', change: '-0.71%', up: false },
+        ])
+
+        // Retry after 8 seconds
+        retryTimer.current = setTimeout(() => fetchAllData(retryCount + 1), 8000)
         return
       }
 
+      setWarmingUp(false)
       setSignals({
         gold: processData(goldRes, goldPrice),
         silver: processData(silverRes, silverPrice),
@@ -92,7 +124,7 @@ export default function Dashboard() {
 
     } catch (err) {
       console.error(err)
-      setError("Failed to load dashboard data. Please check your connection or try again later.")
+      setError("Failed to load dashboard data.")
     } finally {
       setLoading(false)
     }
@@ -127,12 +159,26 @@ export default function Dashboard() {
 
         <div className="flex-1 flex flex-col overflow-auto">
 
+          {/* Warming up banner — shows instead of broken skeletons */}
+          {warmingUp && (
+            <div className="mx-4 mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <div>
+                  <p className="text-sm text-blue-700 font-medium">
+                    Backend is warming up — signals loading automatically...
+                  </p>
+                  <p className="text-xs text-blue-500 mt-0.5">
+                    Free tier servers sleep after inactivity. Prices and charts are available now.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="mx-4 mt-4 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-md shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm text-yellow-700 font-medium">{error}</p>
-              </div>
+              <p className="text-sm text-yellow-700 font-medium">{error}</p>
             </div>
           )}
 
@@ -185,10 +231,7 @@ export default function Dashboard() {
           {/* Bottom Section */}
           <div className="flex gap-4 px-4 pb-4 items-start">
 
-            {/* LEFT COLUMN: Metrics + About */}
             <div className="flex-1 flex flex-col gap-4">
-
-              {/* Model Metrics */}
               <div className="bg-white border border-gray-200 rounded-xl p-4">
                 <div className="flex gap-6">
                   {[
@@ -209,61 +252,37 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* About FinanceAI */}
               <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                 <button
                   onClick={() => setShowAbout(!showAbout)}
                   className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition"
                 >
-                  <span className="text-gray-500 text-sm">
-                    {showAbout ? '▼' : '▶'}
-                  </span>
+                  <span className="text-gray-500 text-sm">{showAbout ? '▼' : '▶'}</span>
                   <div className="text-left">
                     <h2 className="text-sm font-bold text-gray-900">About FinanceAI</h2>
                     <p className="text-xs text-gray-400">Financial Signal Classification System</p>
                   </div>
                 </button>
-
                 {showAbout && (
                   <div className="px-6 pb-6 border-t border-gray-100">
                     <p className="text-xs text-gray-500 leading-relaxed mt-4 mb-5">
                       FinanceAI is a full-stack machine learning project that predicts next-day
                       directional signals — BUY or SELL — for Gold, Silver, and Nifty 50.
                       Built using XGBoost trained on 10 years of historical market data with
-                      technical indicators including RSI, MACD, and Moving Averages. The platform
-                      features a FastAPI backend with JWT authentication, a PostgreSQL database,
-                      a backtesting engine to evaluate historical signal performance, and automated
-                      weekly model retraining.
+                      technical indicators including RSI, MACD, and Moving Averages.
                     </p>
-
                     <div className="grid grid-cols-4 gap-4 pt-4 border-t border-gray-100">
-                      <div>
-                        <p className="text-xs text-gray-400 mb-1">ML Model</p>
-                        <p className="text-xs font-semibold text-gray-900">XGBoost</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400 mb-1">Data Source</p>
-                        <p className="text-xs font-semibold text-gray-900">Yahoo Finance (10Y)</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400 mb-1">Tech Stack</p>
-                        <p className="text-xs font-semibold text-gray-900">FastAPI · React · PostgreSQL</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400 mb-1">Assets Covered</p>
-                        <p className="text-xs font-semibold text-gray-900">Gold · Silver · Nifty 50</p>
-                      </div>
+                      <div><p className="text-xs text-gray-400 mb-1">ML Model</p><p className="text-xs font-semibold text-gray-900">XGBoost</p></div>
+                      <div><p className="text-xs text-gray-400 mb-1">Data Source</p><p className="text-xs font-semibold text-gray-900">Yahoo Finance (10Y)</p></div>
+                      <div><p className="text-xs text-gray-400 mb-1">Tech Stack</p><p className="text-xs font-semibold text-gray-900">FastAPI · React · PostgreSQL</p></div>
+                      <div><p className="text-xs text-gray-400 mb-1">Assets Covered</p><p className="text-xs font-semibold text-gray-900">Gold · Silver · Nifty 50</p></div>
                     </div>
                   </div>
                 )}
               </div>
-
             </div>
 
-            {/* RIGHT COLUMN: Watchlist + Developer */}
             <div className="w-80 flex flex-col gap-4">
-
-              {/* Watchlist */}
               <div className="bg-white border border-gray-200 rounded-xl p-4">
                 <p className="text-xs text-gray-400 uppercase tracking-widest mb-3">Watchlist</p>
                 <table className="w-full text-xs">
@@ -279,63 +298,36 @@ export default function Dashboard() {
                       <tr key={i} className="border-b border-gray-50">
                         <td className="py-2 font-medium text-gray-700">{w.symbol}</td>
                         <td className="py-2 text-right text-gray-900">{w.price}</td>
-                        <td className={`py-2 text-right font-medium ${w.up ? 'text-green-500' : 'text-red-500'}`}>
-                          {w.change}
-                        </td>
+                        <td className={`py-2 text-right font-medium ${w.up ? 'text-green-500' : 'text-red-500'}`}>{w.change}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              {/* Developer Card */}
               <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col gap-3 w-full">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center text-xl font-bold text-yellow-600">
-                    SJ
-                  </div>
+                  <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center text-xl font-bold text-yellow-600">SJ</div>
                   <div>
                     <p className="text-sm font-bold text-gray-900">Sanjay Jat</p>
                     <p className="text-xs text-gray-400">B.Tech CSE · 3rd Year</p>
                   </div>
                 </div>
-
                 <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span>🎓</span> Rajasthan, India
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span>💡</span> Exploring ML · Building Full Stack
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span>🚀</span> Open to Opportunities
-                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-500"><span>🎓</span> Rajasthan, India</div>
+                  <div className="flex items-center gap-2 text-xs text-gray-500"><span>💡</span> Exploring ML · Building Full Stack</div>
+                  <div className="flex items-center gap-2 text-xs text-gray-500"><span>🚀</span> Open to Opportunities</div>
                 </div>
-
                 <div className="flex gap-2 mt-1">
-                  <a
-                    href="https://github.com/sanjayjat354339-cell"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex-1 text-center text-xs py-1.5 rounded-lg bg-gray-900 text-white hover:bg-gray-700"
-                  >
-                    GitHub
-                  </a>
-                  <a
-                    href="https://www.linkedin.com/in/sanjay-jat-250767346"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex-1 text-center text-xs py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-                  >
-                    LinkedIn
-                  </a>
+                  <a href="https://github.com/sanjayjat354339-cell" target="_blank" rel="noreferrer"
+                    className="flex-1 text-center text-xs py-1.5 rounded-lg bg-gray-900 text-white hover:bg-gray-700">GitHub</a>
+                  <a href="https://www.linkedin.com/in/sanjay-jat-250767346" target="_blank" rel="noreferrer"
+                    className="flex-1 text-center text-xs py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700">LinkedIn</a>
                 </div>
               </div>
-
             </div>
 
           </div>
-
         </div>
       </div>
     </div>

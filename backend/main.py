@@ -40,3 +40,7 @@ async def startup():
 @app.get("/")
 def root():
     return {"message": "Finance Signal API is running"}
+
+@app.get("/ping")
+def ping():
+    return {"status": "alive"}

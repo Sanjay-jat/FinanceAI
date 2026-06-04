@@ -2,6 +2,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import time
 
 TICKERS = {
     "gold": "GC=F",
@@ -20,10 +21,28 @@ def fetch_data(asset: str, period: str = "10y") -> pd.DataFrame:
     if asset in _cache:
         age = datetime.now() - _cache[asset]["cached_at"]
         if age < timedelta(minutes=CACHE_DURATION_MINUTES):
-            return _cache[asset]["data"].copy()
+            cached = _cache[asset]["data"]
+            if not cached.empty:
+                return cached.copy()
 
-    df = yf.download(ticker, period=period, auto_adjust=True)
-    df.dropna(inplace=True)
+    # Retry up to 3 times — yfinance can return empty on first cold call
+    for attempt in range(3):
+        df = yf.download(ticker, period=period, auto_adjust=True, progress=False)
+
+        # Flatten MultiIndex columns if present (common with futures GC=F)
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+
+        df.dropna(inplace=True)
+
+        if not df.empty:
+            break
+
+        print(f"⚠️ Empty data for {asset} (attempt {attempt + 1}/3), retrying...")
+        time.sleep(2)
+
+    if df.empty:
+        raise ValueError(f"No data returned from yfinance for {asset} ({ticker}) after 3 attempts")
 
     _cache[asset] = {
         "data": df.copy(),
@@ -52,13 +71,16 @@ def calculate_macd(series: pd.Series):
 def engineer_features(asset: str) -> pd.DataFrame:
     df = fetch_data(asset)
 
-    # Force close to always be a clean 1D Series regardless of yfinance output
+    # Force close to always be a clean 1D Series
     close = df["Close"]
     if hasattr(close, 'squeeze'):
         close = close.squeeze()
     if isinstance(close, pd.DataFrame):
         close = close.iloc[:, 0]
     close = pd.Series(close.values, index=df.index)
+
+    if len(close) < 30:
+        raise ValueError(f"Not enough data for {asset} — only {len(close)} rows after cleaning")
 
     df["MA7"] = close.rolling(window=7).mean()
     df["MA30"] = close.rolling(window=30).mean()
@@ -70,4 +92,8 @@ def engineer_features(asset: str) -> pd.DataFrame:
     df["Target"] = df["Return"].apply(lambda x: 1 if x > 0 else 0)
 
     df.dropna(inplace=True)
+
+    if df.empty:
+        raise ValueError(f"DataFrame empty after feature engineering for {asset}")
+
     return df
